@@ -3,698 +3,298 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Depth Lab - 3D Pipeline Dashboard</title>
+    <title>Depth Lab - 3D Pipeline</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #0a0a0a;
-            color: #fff;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            overflow: hidden;
-        }
-        #canvas-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-        }
-        .overlay {
-            position: fixed;
-            z-index: 10;
-            pointer-events: none;
-        }
-        .overlay > * {
-            pointer-events: auto;
-        }
+        body { background: #0a0a0a; color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; }
+        #bg { position: fixed; inset: 0; z-index: 0; }
 
         /* Top Bar */
-        .top-bar {
-            top: 0;
-            left: 0;
-            right: 0;
-            padding: 20px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: linear-gradient(to bottom, rgba(10,10,10,0.9), transparent);
-        }
-        .logo {
-            font-size: 24px;
-            font-weight: 700;
-        }
-        .logo span { color: #8b5cf6; }
-        .stats-bar {
-            display: flex;
-            gap: 30px;
-        }
-        .stat {
-            text-align: center;
-        }
-        .stat-value {
-            font-size: 28px;
-            font-weight: 700;
-            color: #8b5cf6;
-        }
-        .stat-label {
-            font-size: 11px;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+        .top { position: fixed; top: 0; left: 0; right: 0; z-index: 10; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; background: rgba(10,10,10,0.95); border-bottom: 1px solid #1a1a1a; }
+        .logo { font-size: 20px; font-weight: 700; }
+        .logo b { color: #8b5cf6; }
+        .stats { display: flex; gap: 25px; }
+        .stat { text-align: center; }
+        .stat-n { font-size: 24px; font-weight: 700; color: #8b5cf6; }
+        .stat-l { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* Pipeline Stages */
-        .pipeline-container {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 200px;
-            display: flex;
-            padding: 20px;
-            gap: 10px;
-            background: linear-gradient(to top, rgba(10,10,10,0.95), transparent);
-        }
-        .stage {
-            flex: 1;
-            background: rgba(26,26,26,0.8);
-            border: 1px solid #2a2a2a;
-            border-radius: 12px;
-            padding: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-            backdrop-filter: blur(10px);
-        }
-        .stage:hover {
-            border-color: #8b5cf6;
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(139,92,246,0.2);
-        }
-        .stage.active {
-            border-color: #8b5cf6;
-            background: rgba(139,92,246,0.1);
-        }
-        .stage-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        .stage-name {
-            font-size: 12px;
-            font-weight: 600;
-            color: #fff;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .stage-count {
-            background: #8b5cf6;
-            color: #fff;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-        .stage-leads {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            max-height: 100px;
-            overflow-y: auto;
-        }
-        .lead-chip {
-            background: rgba(255,255,255,0.1);
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-size: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .lead-chip:hover {
-            background: #8b5cf6;
-        }
+        /* Search + Quick Add */
+        .toolbar { position: fixed; top: 65px; left: 0; right: 0; z-index: 10; padding: 10px 25px; display: flex; gap: 10px; background: rgba(10,10,10,0.9); border-bottom: 1px solid #1a1a1a; }
+        .search { flex: 1; padding: 10px 15px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; color: #fff; font-size: 14px; outline: none; }
+        .search:focus { border-color: #8b5cf6; }
+        .quick-add { display: flex; gap: 8px; }
+        .quick-add input { padding: 10px 12px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; color: #fff; font-size: 13px; outline: none; width: 150px; }
+        .quick-add input:focus { border-color: #8b5cf6; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-p { background: #8b5cf6; color: #fff; }
+        .btn-p:hover { background: #7c3aed; }
+        .btn-s { background: #1a1a1a; color: #fff; border: 1px solid #2a2a2a; }
+        .btn-s:hover { border-color: #8b5cf6; }
 
-        /* Side Panel */
-        .side-panel {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            width: 320px;
-            background: rgba(17,17,17,0.95);
-            border: 1px solid #2a2a2a;
-            border-radius: 16px;
-            padding: 20px;
-            backdrop-filter: blur(20px);
-            display: none;
-        }
-        .side-panel.show { display: block; }
-        .panel-title {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 15px;
-            color: #8b5cf6;
-        }
-        .form-group {
-            margin-bottom: 12px;
-        }
-        .form-group label {
-            display: block;
-            font-size: 11px;
-            color: #888;
-            margin-bottom: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 10px 12px;
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .form-group input:focus, .form-group select:focus {
-            border-color: #8b5cf6;
-        }
-        .btn {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-primary {
-            background: #8b5cf6;
-            color: #fff;
-        }
-        .btn-primary:hover { background: #7c3aed; }
-        .btn-danger {
-            background: rgba(239,68,68,0.2);
-            color: #ef4444;
-            border: 1px solid rgba(239,68,68,0.3);
-            margin-top: 8px;
-        }
-        .btn-danger:hover { background: rgba(239,68,68,0.3); }
+        /* Pipeline */
+        .pipeline { position: fixed; top: 120px; left: 0; right: 0; bottom: 0; display: flex; padding: 15px; gap: 8px; overflow-x: auto; }
+        .stage { min-width: 180px; flex: 1; background: rgba(17,17,17,0.9); border: 1px solid #2a2a2a; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; transition: all 0.3s; }
+        .stage:hover { border-color: #8b5cf6; }
+        .stage.drag-over { border-color: #8b5cf6; background: rgba(139,92,246,0.1); transform: scale(1.02); }
+        .stage-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #2a2a2a; }
+        .stage-name { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stage-count { background: #8b5cf6; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+        .stage-leads { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 
-        /* Add Button */
-        .add-btn {
-            position: fixed;
-            bottom: 230px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: #8b5cf6;
-            border: none;
-            color: #fff;
-            font-size: 28px;
-            cursor: pointer;
-            box-shadow: 0 5px 20px rgba(139,92,246,0.4);
-            transition: all 0.3s;
-            z-index: 20;
-        }
-        .add-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 8px 30px rgba(139,92,246,0.6);
-        }
+        /* Lead Cards */
+        .lead { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px; cursor: grab; transition: all 0.2s; position: relative; }
+        .lead:hover { border-color: #8b5cf6; transform: translateY(-2px); }
+        .lead.dragging { opacity: 0.5; transform: rotate(2deg); }
+        .lead-name { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+        .lead-email { font-size: 11px; color: #888; }
+        .lead-source { font-size: 9px; color: #8b5cf6; margin-top: 4px; text-transform: uppercase; }
+        .lead-actions { position: absolute; top: 8px; right: 8px; display: none; gap: 4px; }
+        .lead:hover .lead-actions { display: flex; }
+        .lead-action { width: 22px; height: 22px; border-radius: 4px; border: none; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+        .lead-action.del { background: rgba(239,68,68,0.2); color: #ef4444; }
+        .lead-action.del:hover { background: #ef4444; color: #fff; }
+        .lead-action.move-r { background: rgba(34,197,94,0.2); color: #22c55e; }
+        .lead-action.move-r:hover { background: #22c55e; color: #fff; }
+        .lead-action.move-l { background: rgba(6,182,212,0.2); color: #06b6d4; }
+        .lead-action.move-l:hover { background: #06b6d4; color: #fff; }
 
-        /* Lead Detail Popup */
-        .lead-popup {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #111;
-            border: 1px solid #2a2a2a;
-            border-radius: 16px;
-            padding: 30px;
-            min-width: 400px;
-            z-index: 100;
-            display: none;
-            backdrop-filter: blur(20px);
-        }
-        .lead-popup.show { display: block; }
-        .lead-popup h3 { color: #8b5cf6; margin-bottom: 15px; }
-        .lead-popup .close-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: none;
-            border: none;
-            color: #888;
-            font-size: 20px;
-            cursor: pointer;
-        }
-        .lead-popup .close-btn:hover { color: #fff; }
+        /* Keyboard Shortcuts */
+        .shortcuts { position: fixed; bottom: 15px; left: 25px; z-index: 10; display: flex; gap: 10px; }
+        .shortcut { background: rgba(26,26,26,0.9); border: 1px solid #2a2a2a; border-radius: 6px; padding: 6px 10px; font-size: 11px; color: #888; }
+        .shortcut kbd { background: #2a2a2a; padding: 2px 6px; border-radius: 3px; color: #fff; font-family: monospace; }
 
-        /* Move buttons */
-        .move-btns {
-            display: flex;
-            gap: 8px;
-            margin-top: 15px;
-        }
-        .move-btn {
-            flex: 1;
-            padding: 8px;
-            border: 1px solid #2a2a2a;
-            background: rgba(255,255,255,0.05);
-            color: #fff;
-            border-radius: 6px;
-            font-size: 11px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .move-btn:hover {
-            border-color: #8b5cf6;
-            background: rgba(139,92,246,0.1);
-        }
+        /* Toast */
+        .toast { position: fixed; bottom: 50px; right: 25px; z-index: 100; background: #22c55e; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; transform: translateY(100px); opacity: 0; transition: all 0.3s; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.error { background: #ef4444; }
 
-        /* Scrollbar */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
     </style>
 </head>
 <body>
-    <div id="canvas-container"></div>
+    <div id="bg"></div>
 
     <!-- Top Bar -->
-    <div class="overlay top-bar">
-        <div class="logo">Depth<span>Lab</span> Pipeline</div>
-        <div class="stats-bar">
-            <div class="stat">
-                <div class="stat-value" id="total-leads">0</div>
-                <div class="stat-label">Total Leads</div>
-            </div>
-            <div class="stat">
-                <div class="stat-value" id="total-emails">0</div>
-                <div class="stat-label">Emails Sent</div>
-            </div>
-            <div class="stat">
-                <div class="stat-value" id="reply-rate">0%</div>
-                <div class="stat-label">Reply Rate</div>
-            </div>
-            <div class="stat">
-                <div class="stat-value" id="conversions">0</div>
-                <div class="stat-label">Conversions</div>
-            </div>
+    <div class="top">
+        <div class="logo">Depth<b>Lab</b> Pipeline</div>
+        <div class="stats">
+            <div class="stat"><div class="stat-n" id="s-total">0</div><div class="stat-l">Leads</div></div>
+            <div class="stat"><div class="stat-n" id="s-emails">0</div><div class="stat-l">Emails</div></div>
+            <div class="stat"><div class="stat-n" id="s-reply">0%</div><div class="stat-l">Reply</div></div>
+            <div class="stat"><div class="stat-n" id="s-won">0</div><div class="stat-l">Won</div></div>
         </div>
     </div>
 
-    <!-- Pipeline Stages -->
-    <div class="overlay pipeline-container" id="pipeline"></div>
-
-    <!-- Add Button -->
-    <button class="add-btn" onclick="toggleAddPanel()">+</button>
-
-    <!-- Add Lead Panel -->
-    <div class="side-panel" id="add-panel">
-        <div class="panel-title">Add New Lead</div>
-        <div class="form-group">
-            <label>Name</label>
-            <input type="text" id="lead-name" placeholder="John Doe">
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <input class="search" id="search" placeholder="Search leads... (Ctrl+K)" oninput="filterLeads()">
+        <div class="quick-add">
+            <input id="q-name" placeholder="Name" onkeydown="if(event.key==='Enter')quickAdd()">
+            <input id="q-email" placeholder="Email" onkeydown="if(event.key==='Enter')quickAdd()">
+            <button class="btn btn-p" onclick="quickAdd()">+ Add</button>
         </div>
-        <div class="form-group">
-            <label>Email</label>
-            <input type="email" id="lead-email" placeholder="john@example.com">
-        </div>
-        <div class="form-group">
-            <label>Company</label>
-            <input type="text" id="lead-company" placeholder="Company Name">
-        </div>
-        <div class="form-group">
-            <label>Source</label>
-            <select id="lead-source">
-                <option value="manual">Manual</option>
-                <option value="reddit">Reddit</option>
-                <option value="linkedin">LinkedIn</option>
-                <option value="indeed">Indeed</option>
-                <option value="upwork">Upwork</option>
-                <option value="youtube">YouTube</option>
-            </select>
-        </div>
-        <button class="btn btn-primary" onclick="addLead()">Add Lead</button>
     </div>
 
-    <!-- Lead Detail Popup -->
-    <div class="lead-popup" id="lead-popup">
-        <button class="close-btn" onclick="closePopup()">&times;</button>
-        <h3 id="popup-name">Lead Name</h3>
-        <p id="popup-email" style="color:#888;margin-bottom:5px"></p>
-        <p id="popup-company" style="color:#888;margin-bottom:5px"></p>
-        <p id="popup-source" style="color:#888;margin-bottom:15px"></p>
-        <div class="move-btns" id="move-btns"></div>
-        <button class="btn btn-danger" onclick="deleteLead()">Delete Lead</button>
+    <!-- Pipeline -->
+    <div class="pipeline" id="pipeline"></div>
+
+    <!-- Keyboard Shortcuts -->
+    <div class="shortcuts">
+        <div class="shortcut"><kbd>Ctrl+K</kbd> Search</div>
+        <div class="shortcut"><kbd>+</kbd> Quick Add</div>
+        <div class="shortcut"><kbd>1-8</kbd> Jump to Stage</div>
+        <div class="shortcut"><kbd>R</kbd> Refresh</div>
     </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
 
     <script>
-        // Three.js Scene Setup
-        let scene, camera, renderer, particles = [];
-        let pipelineData = {};
-        let selectedLead = null;
-
+        // === THREE.JS 3D BACKGROUND ===
+        let scene, camera, renderer;
         const STAGES = [
-            { id: 'new_lead', name: 'New Lead', color: 0x8b5cf6 },
-            { id: 'email_sent', name: 'Email Sent', color: 0x06b6d4 },
-            { id: 'followup', name: 'Follow-up', color: 0xf59e0b },
-            { id: 'replied', name: 'Replied', color: 0x10b981 },
-            { id: 'qualified', name: 'Qualified', color: 0x3b82f6 },
-            { id: 'proposal_sent', name: 'Proposal', color: 0xec4899 },
-            { id: 'closed_won', name: 'Won', color: 0x22c55e },
-            { id: 'closed_lost', name: 'Lost', color: 0xef4444 },
+            { id: 'new_lead', name: 'New Lead', color: '#8b5cf6', c3d: 0x8b5cf6 },
+            { id: 'email_sent', name: 'Email Sent', color: '#06b6d4', c3d: 0x06b6d4 },
+            { id: 'followup', name: 'Follow-up', color: '#f59e0b', c3d: 0xf59e0b },
+            { id: 'replied', name: 'Replied', color: '#10b981', c3d: 0x10b981 },
+            { id: 'qualified', name: 'Qualified', color: '#3b82f6', c3d: 0x3b82f6 },
+            { id: 'proposal', name: 'Proposal', color: '#ec4899', c3d: 0xec4899 },
+            { id: 'won', name: 'Won', color: '#22c55e', c3d: 0x22c55e },
+            { id: 'lost', name: 'Lost', color: '#ef4444', c3d: 0xef4444 },
         ];
 
-        function init() {
-            // Scene
+        let pipelineData = {}, selectedId = null, stageNodes = [];
+
+        function init3D() {
             scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(0x0a0a0a, 10, 50);
-
-            // Camera
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 5, 15);
+            scene.fog = new THREE.Fog(0x0a0a0a, 15, 60);
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 8, 20);
             camera.lookAt(0, 0, 0);
-
-            // Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            document.getElementById('bg').appendChild(renderer.domElement);
 
-            // Lights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
-            scene.add(ambientLight);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+            const pl = new THREE.PointLight(0x8b5cf6, 0.8, 60);
+            pl.position.set(0, 10, 5);
+            scene.add(pl);
 
-            const pointLight = new THREE.PointLight(0x8b5cf6, 1, 50);
-            pointLight.position.set(0, 10, 5);
-            scene.add(pointLight);
-
-            // Create pipeline nodes
-            createPipelineNodes();
-
-            // Create background particles
-            createBackgroundParticles();
-
-            // Create connecting lines
-            createConnections();
-
-            // Load data
-            loadPipeline();
-
-            // Start animation
-            animate();
-        }
-
-        function createPipelineNodes() {
-            const spacing = 3.5;
-            const startX = -(STAGES.length - 1) * spacing / 2;
-
-            STAGES.forEach((stage, i) => {
-                // Main node
-                const geometry = new THREE.SphereGeometry(0.8, 32, 32);
-                const material = new THREE.MeshPhongMaterial({
-                    color: stage.color,
-                    emissive: stage.color,
-                    emissiveIntensity: 0.3,
-                    transparent: true,
-                    opacity: 0.9,
-                });
-                const sphere = new THREE.Mesh(geometry, material);
-                sphere.position.set(startX + i * spacing, 0, 0);
-                sphere.userData = { stage: stage.id, index: i };
-                scene.add(sphere);
-
-                // Glow ring
-                const ringGeometry = new THREE.RingGeometry(1, 1.2, 32);
-                const ringMaterial = new THREE.MeshBasicMaterial({
-                    color: stage.color,
-                    transparent: true,
-                    opacity: 0.2,
-                    side: THREE.DoubleSide,
-                });
-                const ring = new THREE.Mesh(ringGeometry, ringMaterial);
-                ring.position.set(startX + i * spacing, 0, 0);
-                ring.rotation.x = Math.PI / 2;
-                scene.add(ring);
-
-                // Store reference
-                stage.sphere = sphere;
-                stage.ring = ring;
-                stage.x = startX + i * spacing;
-            });
-        }
-
-        function createConnections() {
-            const spacing = 3.5;
-            const startX = -(STAGES.length - 1) * spacing / 2;
-
-            for (let i = 0; i < STAGES.length - 1; i++) {
-                const points = [];
-                points.push(new THREE.Vector3(startX + i * spacing + 1, 0, 0));
-                points.push(new THREE.Vector3(startX + (i + 1) * spacing - 1, 0, 0));
-
-                const geometry = new THREE.BufferGeometry().setFromPoints(points);
-                const material = new THREE.LineBasicMaterial({
-                    color: 0x333333,
-                    transparent: true,
-                    opacity: 0.5,
-                });
-                const line = new THREE.Line(geometry, material);
-                scene.add(line);
-            }
-        }
-
-        function createBackgroundParticles() {
-            const geometry = new THREE.BufferGeometry();
-            const count = 500;
-            const positions = new Float32Array(count * 3);
-
-            for (let i = 0; i < count * 3; i++) {
-                positions[i] = (Math.random() - 0.5) * 50;
-            }
-
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-            const material = new THREE.PointsMaterial({
-                color: 0x8b5cf6,
-                size: 0.05,
-                transparent: true,
-                opacity: 0.6,
+            // Create stage nodes
+            const sp = 4, sx = -(STAGES.length - 1) * sp / 2;
+            STAGES.forEach((s, i) => {
+                const geo = new THREE.IcosahedronGeometry(0.6, 1);
+                const mat = new THREE.MeshPhongMaterial({ color: s.c3d, emissive: s.c3d, emissiveIntensity: 0.4, transparent: true, opacity: 0.85 });
+                const m = new THREE.Mesh(geo, mat);
+                m.position.set(sx + i * sp, 0, 0);
+                scene.add(m);
+                s.mesh = m;
+                s.x = sx + i * sp;
+                stageNodes.push(m);
             });
 
-            const points = new THREE.Points(geometry, material);
-            scene.add(points);
-            particles.push(points);
+            // Background particles
+            const bg = new THREE.BufferGeometry();
+            const pos = new Float32Array(300 * 3);
+            for (let i = 0; i < 900; i++) pos[i] = (Math.random() - 0.5) * 60;
+            bg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            scene.add(new THREE.Points(bg, new THREE.PointsMaterial({ color: 0x8b5cf6, size: 0.04, transparent: true, opacity: 0.5 })));
+
+            animate3D();
         }
 
-        function addLeadParticles(stageIndex, count) {
-            const stage = STAGES[stageIndex];
-            if (!stage) return;
-
-            for (let i = 0; i < count; i++) {
-                const geometry = new THREE.SphereGeometry(0.15, 16, 16);
-                const material = new THREE.MeshPhongMaterial({
-                    color: stage.color,
-                    emissive: stage.color,
-                    emissiveIntensity: 0.5,
-                });
-                const particle = new THREE.Mesh(geometry, material);
-
-                // Random position around the stage node
-                const angle = Math.random() * Math.PI * 2;
-                const radius = 1.5 + Math.random() * 1;
-                particle.position.set(
-                    stage.x + Math.cos(angle) * radius,
-                    (Math.random() - 0.5) * 2,
-                    Math.sin(angle) * radius
-                );
-
-                particle.userData = {
-                    stageIndex: stageIndex,
-                    angle: angle,
-                    radius: radius,
-                    speed: 0.5 + Math.random() * 0.5,
-                };
-
-                scene.add(particle);
-                particles.push(particle);
-            }
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            // Rotate camera slowly
-            const time = Date.now() * 0.0001;
-            camera.position.x = Math.sin(time) * 15;
-            camera.position.z = Math.cos(time) * 15;
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+            const t = Date.now() * 0.00005;
+            camera.position.x = Math.sin(t) * 18;
+            camera.position.z = Math.cos(t) * 18;
             camera.lookAt(0, 0, 0);
-
-            // Animate particles
-            particles.forEach(p => {
-                if (p.userData && p.userData.angle !== undefined) {
-                    p.userData.angle += 0.005 * p.userData.speed;
-                    p.position.x = STAGES[p.userData.stageIndex].x +
-                        Math.cos(p.userData.angle) * p.userData.radius;
-                    p.position.z = Math.sin(p.userData.angle) * p.userData.radius;
-                    p.position.y += Math.sin(Date.now() * 0.001 + p.userData.angle) * 0.002;
-                }
+            stageNodes.forEach((m, i) => {
+                m.rotation.x += 0.003;
+                m.rotation.y += 0.005;
+                m.scale.setScalar(1 + Math.sin(Date.now() * 0.002 + i) * 0.08);
             });
-
-            // Pulse stage rings
-            STAGES.forEach((stage, i) => {
-                if (stage.ring) {
-                    const scale = 1 + Math.sin(Date.now() * 0.002 + i) * 0.1;
-                    stage.ring.scale.set(scale, scale, scale);
-                }
-            });
-
             renderer.render(scene, camera);
         }
 
-        // API Functions
-        async function loadPipeline() {
-            try {
-                const [pipelineRes, statsRes] = await Promise.all([
-                    fetch('/api/pipeline'),
-                    fetch('/api/stats')
-                ]);
-
-                pipelineData = await pipelineRes.json();
-                const stats = await statsRes.json();
-
-                // Update stats
-                document.getElementById('total-leads').textContent = stats.total_leads || 0;
-                document.getElementById('total-emails').textContent = stats.total_emails || 0;
-                document.getElementById('reply-rate').textContent = stats.reply_rate || '0%';
-                document.getElementById('conversions').textContent = stats.total_conversions || 0;
-
-                // Render pipeline
-                renderPipeline();
-
-                // Add particles for each stage
-                STAGES.forEach((stage, i) => {
-                    const leads = pipelineData[stage.id] || [];
-                    addLeadParticles(i, Math.min(leads.length, 10));
-                });
-
-            } catch (error) {
-                console.error('Error loading pipeline:', error);
-            }
+        // === API ===
+        async function load() {
+            const [p, s] = await Promise.all([fetch('/api/pipeline').then(r => r.json()), fetch('/api/stats').then(r => r.json())]);
+            pipelineData = p;
+            document.getElementById('s-total').textContent = s.total_leads || 0;
+            document.getElementById('s-emails').textContent = s.total_emails || 0;
+            document.getElementById('s-reply').textContent = s.reply_rate || '0%';
+            document.getElementById('s-won').textContent = s.total_conversions || 0;
+            render();
         }
 
-        function renderPipeline() {
-            const container = document.getElementById('pipeline');
-            container.innerHTML = '';
-
-            STAGES.forEach(stage => {
-                const leads = pipelineData[stage.id] || [];
+        function render() {
+            const c = document.getElementById('pipeline');
+            const q = document.getElementById('search').value.toLowerCase();
+            c.innerHTML = '';
+            STAGES.forEach((s, i) => {
+                let leads = (pipelineData[s.id] || []);
+                if (q) leads = leads.filter(l => (l.name + l.email + l.company).toLowerCase().includes(q));
                 const div = document.createElement('div');
                 div.className = 'stage';
+                div.ondragover = e => { e.preventDefault(); div.classList.add('drag-over'); };
+                div.ondragleave = () => div.classList.remove('drag-over');
+                div.ondrop = e => { e.preventDefault(); div.classList.remove('drag-over'); moveLead(JSON.parse(e.dataTransfer.getData('text')), s.id); };
                 div.innerHTML = `
-                    <div class="stage-header">
-                        <span class="stage-name">${stage.name}</span>
+                    <div class="stage-head">
+                        <span class="stage-name" style="color:${s.color}">${s.name}</span>
                         <span class="stage-count">${leads.length}</span>
                     </div>
                     <div class="stage-leads">
                         ${leads.map(l => `
-                            <span class="lead-chip" onclick="showLead(${l.id}, '${l.name}', '${l.email || ''}', '${l.company || ''}', '${l.source || ''}')">
-                                ${l.name}
-                            </span>
+                            <div class="lead" draggable="true" ondragstart="e.dataTransfer.setData('text',JSON.stringify({id:${l.id},stage:'${s.id}'}))" onclick="selectLead(${l.id})">
+                                <div class="lead-actions">
+                                    ${i > 0 ? `<button class="lead-action move-l" onclick="event.stopPropagation();moveLead({id:${l.id}},'${STAGES[i-1].id}')" title="Move left">&larr;</button>` : ''}
+                                    ${i < STAGES.length - 1 ? `<button class="lead-action move-r" onclick="event.stopPropagation();moveLead({id:${l.id}},'${STAGES[i+1].id}')" title="Move right">&rarr;</button>` : ''}
+                                    <button class="lead-action del" onclick="event.stopPropagation();delLead(${l.id})" title="Delete">&times;</button>
+                                </div>
+                                <div class="lead-name">${l.name}</div>
+                                <div class="lead-email">${l.email || ''}</div>
+                                <div class="lead-source">${l.source || ''}</div>
+                            </div>
                         `).join('')}
                     </div>
                 `;
-                container.appendChild(div);
+                c.appendChild(div);
             });
         }
 
-        function toggleAddPanel() {
-            document.getElementById('add-panel').classList.toggle('show');
+        function filterLeads() { render(); }
+
+        async function quickAdd() {
+            const name = document.getElementById('q-name').value.trim();
+            const email = document.getElementById('q-email').value.trim();
+            if (!name) { toast('Enter a name!', true); return; }
+            await fetch('/api/lead', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, source: 'manual' }) });
+            document.getElementById('q-name').value = '';
+            document.getElementById('q-email').value = '';
+            toast(`${name} added!`);
+            load();
         }
 
-        async function addLead() {
-            const name = document.getElementById('lead-name').value;
-            const email = document.getElementById('lead-email').value;
-            const company = document.getElementById('lead-company').value;
-            const source = document.getElementById('lead-source').value;
-
-            if (!name) { alert('Name is required'); return; }
-
-            await fetch('/api/lead', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, company, source })
-            });
-
-            // Clear form
-            document.getElementById('lead-name').value = '';
-            document.getElementById('lead-email').value = '';
-            document.getElementById('lead-company').value = '';
-            document.getElementById('add-panel').classList.remove('show');
-
-            // Reload
-            loadPipeline();
+        async function moveLead(data, newStage) {
+            if (data.stage === newStage) return;
+            await fetch(`/api/lead/${data.id}/stage`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stage: newStage }) });
+            toast(`Moved to ${STAGES.find(s => s.id === newStage).name}`);
+            load();
         }
 
-        function showLead(id, name, email, company, source) {
-            selectedLead = id;
-            document.getElementById('popup-name').textContent = name;
-            document.getElementById('popup-email').textContent = email || 'No email';
-            document.getElementById('popup-company').textContent = company || 'No company';
-            document.getElementById('popup-source').textContent = `Source: ${source || 'Unknown'}`;
-
-            // Create move buttons
-            const moveBtns = document.getElementById('move-btns');
-            moveBtns.innerHTML = STAGES.map(s =>
-                `<button class="move-btn" onclick="moveLead(${id}, '${s.id}')">${s.name}</button>`
-            ).join('');
-
-            document.getElementById('lead-popup').classList.add('show');
-        }
-
-        function closePopup() {
-            document.getElementById('lead-popup').classList.remove('show');
-            selectedLead = null;
-        }
-
-        async function moveLead(id, stage) {
-            await fetch(`/api/lead/${id}/stage`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ stage })
-            });
-            closePopup();
-            loadPipeline();
-        }
-
-        async function deleteLead() {
-            if (!selectedLead) return;
+        async function delLead(id) {
             if (!confirm('Delete this lead?')) return;
-
-            await fetch(`/api/lead/${selectedLead}`, { method: 'DELETE' });
-            closePopup();
-            loadPipeline();
+            await fetch(`/api/lead/${id}`, { method: 'DELETE' });
+            toast('Lead deleted');
+            load();
         }
 
-        // Handle window resize
+        function selectLead(id) { selectedId = id; }
+
+        function toast(msg, err) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show' + (err ? ' error' : '');
+            setTimeout(() => t.className = 'toast', 2000);
+        }
+
+        // === KEYBOARD SHORTCUTS ===
+        document.addEventListener('keydown', e => {
+            if (e.ctrlKey && e.key === 'k') { e.preventDefault(); document.getElementById('search').focus(); }
+            if (e.key === 'r' && !e.ctrlKey && document.activeElement.tagName !== 'INPUT') load();
+            if (e.key === '+' && document.activeElement.tagName !== 'INPUT') document.getElementById('q-name').focus();
+            if (selectedId && e.key === 'ArrowRight') {
+                const stage = Object.entries(pipelineData).find(([, leads]) => leads.some(l => l.id === selectedId));
+                if (stage) {
+                    const idx = STAGES.findIndex(s => s.id === stage[0]);
+                    if (idx < STAGES.length - 1) moveLead({ id: selectedId }, STAGES[idx + 1].id);
+                }
+            }
+            if (selectedId && e.key === 'ArrowLeft') {
+                const stage = Object.entries(pipelineData).find(([, leads]) => leads.some(l => l.id === selectedId));
+                if (stage) {
+                    const idx = STAGES.findIndex(s => s.id === stage[0]);
+                    if (idx > 0) moveLead({ id: selectedId }, STAGES[idx - 1].id);
+                }
+            }
+            if (selectedId && e.key === 'Delete') delLead(selectedId);
+        });
+
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Initialize
-        init();
-
-        // Auto-refresh every 30 seconds
-        setInterval(loadPipeline, 30000);
+        init3D();
+        load();
+        setInterval(load, 15000);
     </script>
 </body>
 </html>
