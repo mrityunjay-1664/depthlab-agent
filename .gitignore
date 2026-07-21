@@ -1,0 +1,7 @@
+depthlab-agent/
+.env
+__pycache__/
+*.pyc
+depthlab.db
+token.json
+.netlify/

@@ -1,0 +1,24 @@
+# Core
+httpx>=0.27.0
+beautifulsoup4>=4.12.0
+python-dotenv>=1.0.0
+rich>=13.0.0
+schedule>=1.2.0
+
+# Database
+# sqlite3 is built-in
+
+# Email
+google-api-python-client>=2.100.0
+google-auth-httplib2>=0.1.0
+google-auth-oauthlib>=1.1.0
+
+# AI Personalization
+anthropic>=0.30.0
+
+# Google Sheets
+gspread>=5.12.0
+google-auth>=2.23.0
+
+# Scraping
+fake-useragent>=1.4.0
