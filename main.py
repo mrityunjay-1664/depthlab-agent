@@ -1,10 +1,5 @@
 """Depth Lab AI Agent - Main Entry Point"""
 import sys
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-
-console = Console()
 
 
 def show_banner():
@@ -22,21 +17,31 @@ def show_banner():
 
 def show_help():
     """Show available commands"""
-    table = Table(title="Available Commands", show_header=True)
-    table.add_column("Command", style="cyan")
-    table.add_column("Description", style="white")
+    print("""
+Available Commands:
+====================
+  CORE COMMANDS:
+    init        Initialize database
+    scrape      Run YouTube lead scraper
+    send        Send cold emails
+    followup    Send follow-up emails
+    pipeline    Show CRM pipeline
+    stats       Show statistics
+    daemon      Run scheduler (24/7)
 
-    table.add_row("init", "Initialize database")
-    table.add_row("scrape", "Run lead scraper")
-    table.add_row("send", "Send cold emails")
-    table.add_row("followup", "Send follow-up emails")
-    table.add_row("pipeline", "Show CRM pipeline")
-    table.add_row("stats", "Show statistics")
-    table.add_row("daemon", "Run scheduler (24/7)")
-    table.add_row("help", "Show this help")
-    table.add_row("quit", "Exit the agent")
+  LEAD HUNTER (NEW):
+    hunt        Hunt leads across ALL platforms
+    hunt-all    Hunt all platforms automatically
+    hunt-reddit Hunt Reddit only
+    hunt-linked Hunt LinkedIn Jobs only
+    hunt-indeed Hunt Indeed only
+    hunt-upwork Hunt Upwork only
+    view-leads  View found leads
 
-    console.print(table)
+  OTHER:
+    help        Show this help
+    quit        Exit the agent
+    """)
 
 
 def main():
@@ -58,7 +63,7 @@ def main():
         from scrapers.youtube_scraper import scrape_youtube_leads
         init_database()
         leads = scrape_youtube_leads()
-        console.print(f"\n[green]✅ Found {len(leads)} new leads[/green]")
+        print(f"\nFound {len(leads)} new leads")
 
     elif command == "send":
         from database.models import init_database
@@ -70,7 +75,7 @@ def main():
         if leads:
             send_batch_emails(leads, TEMPLATES, "youtubers")
         else:
-            console.print("[yellow]No new leads to email[/yellow]")
+            print("No new leads to email")
 
     elif command == "followup":
         from database.models import init_database
@@ -87,7 +92,7 @@ def main():
                     personalized = personalize_template(template, lead)
                     send_personalized_email(lead, personalized)
         else:
-            console.print("[yellow]No pending follow-ups[/yellow]")
+            print("No pending follow-ups")
 
     elif command == "pipeline":
         from database.models import init_database
@@ -102,16 +107,59 @@ def main():
         total = get_total_stats()
         daily = get_daily_stats()
 
-        console.print("\n[bold cyan]📊 DEPTH LAB - STATISTICS[/bold cyan]")
-        console.print(f"  Total Leads:      {total['total_leads']}")
-        console.print(f"  Total Emails:     {total['total_emails']}")
-        console.print(f"  Total Replies:    {total['total_replies']}")
-        console.print(f"  Conversions:      {total['total_conversions']}")
-        console.print(f"  Reply Rate:       {total['reply_rate']}")
-        console.print(f"  Conversion Rate:  {total['conversion_rate']}")
-        console.print(f"\n[bold]Today's Stats:[/bold]")
-        console.print(f"  Emails Sent:      {daily['emails_sent']}")
-        console.print(f"  Leads Found:      {daily['leads_found']}")
+        print("\n=== DEPTH LAB - STATISTICS ===")
+        print(f"  Total Leads:      {total['total_leads']}")
+        print(f"  Total Emails:     {total['total_emails']}")
+        print(f"  Total Replies:    {total['total_replies']}")
+        print(f"  Conversions:      {total['total_conversions']}")
+        print(f"  Reply Rate:       {total['reply_rate']}")
+        print(f"  Conversion Rate:  {total['conversion_rate']}")
+        print(f"\nToday's Stats:")
+        print(f"  Emails Sent:      {daily['emails_sent']}")
+        print(f"  Leads Found:      {daily['leads_found']}")
+
+    # Lead Hunter commands
+    elif command == "hunt":
+        from database.models import init_database
+        from scrapers.lead_hunter.cli import run_lead_hunter_cli
+        init_database()
+        run_lead_hunter_cli()
+
+    elif command == "hunt-all":
+        from database.models import init_database
+        from scrapers.lead_hunter.hunter import run_hunter
+        init_database()
+        run_hunter()
+
+    elif command == "hunt-reddit":
+        from database.models import init_database
+        from scrapers.lead_hunter.cli import hunt_reddit
+        init_database()
+        hunt_reddit()
+
+    elif command == "hunt-linked":
+        from database.models import init_database
+        from scrapers.lead_hunter.cli import hunt_linkedin
+        init_database()
+        hunt_linkedin()
+
+    elif command == "hunt-indeed":
+        from database.models import init_database
+        from scrapers.lead_hunter.cli import hunt_indeed
+        init_database()
+        hunt_indeed()
+
+    elif command == "hunt-upwork":
+        from database.models import init_database
+        from scrapers.lead_hunter.cli import hunt_upwork
+        init_database()
+        hunt_upwork()
+
+    elif command == "view-leads":
+        from database.models import init_database
+        from scrapers.lead_hunter.cli import view_leads
+        init_database()
+        view_leads()
 
     elif command == "daemon":
         from database.models import init_database
@@ -123,11 +171,11 @@ def main():
         show_help()
 
     elif command == "quit":
-        console.print("[green]Goodbye! 👋[/green]")
+        print("Goodbye!")
         return
 
     else:
-        console.print(f"[red]Unknown command: {command}[/red]")
+        print(f"Unknown command: {command}")
         show_help()
 
 
